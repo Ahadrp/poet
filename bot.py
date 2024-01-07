@@ -1,10 +1,12 @@
 #!/home/ahad/me_bot/bin/python3
 
+from telegram.error import TelegramError
+from datetime import datetime
 from dotenv import load_dotenv
 from telegram import Bot
-from telegram.error import TelegramError
 import asyncio
 import requests
+import schedule
 import logging
 import time
 import os
@@ -58,7 +60,7 @@ async def send_req() -> dict:
     return response.json()
 
 
-async def send_message_to_bot(bot_token, chat_id, message):
+async def send_message_to_bot(bot_token, chat_id):
     """
     send req to api, get resp and send it to bot.
     """
@@ -66,6 +68,9 @@ async def send_message_to_bot(bot_token, chat_id, message):
     logger.debug("CALL send_message_to_bot")
 
     bot = Bot(token=bot_token)
+
+    resp = await send_req()
+    message = process_resp(resp, "last_name")
 
     try:
         await bot.send_message(chat_id=chat_id, text=message)
@@ -76,22 +81,24 @@ async def send_message_to_bot(bot_token, chat_id, message):
     logger.debug(f"END send_message_to_bot")
 
 
-async def send_message_periodically(bot_token, chat_id, interval_seconds):
+def send_request_and_response_at_specific_time(bot_token, chat_id, time_str):
+    """Name of the method tells the story.
     """
-    send message every 'interval_seconds' time
-    """
+    logger.info(f"call 'send_message_at_specific_time'")
 
-    logger.info(f"call hello method peridically")
-
-    while True:
-        resp = await send_req()
-        await send_message_to_bot(bot_token, chat_id, process_resp(resp, "first_name"))
-        await asyncio.sleep(interval_seconds)
+    schedule.every().day.at(time_str).do(asyncio.run, send_message_to_bot(bot_token, chat_id))
 
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(send_message_periodically(bot_token, channel_id, interval_seconds))
+    # Schedule sending request and response at specific times
+    send_request_and_response_at_specific_time(bot_token, channel_id, "19:43")
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+
+
 
