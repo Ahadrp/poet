@@ -9,14 +9,36 @@ import logging
 import time
 import os
 
+# Load the .env file
+load_dotenv()
+
+# Set your bot token and channel ID
+bot_token = os.environ["TOKEN"]
+channel_id = os.environ["CHANNEL_ID"]
+interval_seconds = 3
+
 logging.basicConfig(
     level=logging.INFO,  # Set the desired logging level
     format="%(asctime)s [%(levelname)s] %(message)s",  # Define the log message format
     datefmt="%Y-%m-%d %H:%M:%S"  # Define the date format
 )
 
-async def send_req() -> str:
+def process_resp(response: dict, key: str) -> str:
+    """Return processed response
+    """
+    return response[key]
+
+
+async def send_req() -> dict:
+    """Return the response of request
+
+    send req to api and get the response
+    """
+
+    logger.debug("CALL 'send_req'")
+
     response = ""
+
     url = "https://free-nba.p.rapidapi.com/players/237"
 
     headers = {
@@ -31,11 +53,18 @@ async def send_req() -> str:
         logger.error(f"sending req failed because: '{e}'")
         return
 
+    logger.debug("END 'send_req'")
+
     return response.json()
 
 
-async def send_message(bot_token, chat_id, message):
-    resp = ""
+async def send_message_to_bot(bot_token, chat_id, message):
+    """
+    send req to api, get resp and send it to bot.
+    """
+
+    logger.debug("CALL send_message_to_bot")
+
     bot = Bot(token=bot_token)
 
     try:
@@ -44,26 +73,25 @@ async def send_message(bot_token, chat_id, message):
     except TelegramError as e:
         logger.error(f"Error while sending message '{message}' because: {e}")
 
-async def send_hello_periodically(bot_token, chat_id, interval_seconds):
+    logger.debug(f"END send_message_to_bot")
+
+
+async def send_message_periodically(bot_token, chat_id, interval_seconds):
+    """
+    send message every 'interval_seconds' time
+    """
+
     logger.info(f"call hello method peridically")
 
     while True:
         resp = await send_req()
-        await send_message(bot_token, chat_id, resp)
+        await send_message_to_bot(bot_token, chat_id, process_resp(resp, "first_name"))
         await asyncio.sleep(interval_seconds)
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
-    load_dotenv()
-    logger.info("env has been loaded")
-
-    # Set your bot token and channel ID
-    bot_token = os.environ["TOKEN"]
-    channel_id = os.environ["CHANNEL_ID"]
-    logger.info(f"token '{bot_token}' and channel id '{channel_id}' has been taken")
-    interval_seconds = 3
-
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(send_hello_periodically(bot_token, channel_id, interval_seconds))
+    loop.run_until_complete(send_message_periodically(bot_token, channel_id, interval_seconds))
 
