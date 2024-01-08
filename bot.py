@@ -22,6 +22,7 @@ load_dotenv()
 # Set your bot token and channel ID
 BOT_TOKEN = os.environ["TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]
+HAS_DATABASE = bool(int(os.environ["HAS_DATABASE"]))
 VERSE_COUNT = '1'
 poets_list = []
 HOST = "127.0.0.1"
@@ -112,7 +113,7 @@ async def _send_message_to_bot():
 
     try:
         message = await make_message()
-        while send_query(check_poem_exists, message)[0][0]:
+        while check_poem_exists(message):
             message = await make_message()
     except mysql.connector.Error as e:
         logger.error(f"couldn't hash data and store to database becaues: '{e}'")
@@ -147,11 +148,6 @@ def hash_md5(string):
     return hashed_string
 
 
-def send_query(callback, T):
-    msql = Mysql(HOST, USER, PASSWORD, DATABASE)
-    return msql.handle_query(callback(T))
-
-
 def hash_and_store(message: str) -> None:
     hashed_data = hash_md5(message)
     query = f"INSERT INTO `{TABLE}` VALUES ('{hashed_data}')"
@@ -160,12 +156,31 @@ def hash_and_store(message: str) -> None:
     return query
 
 
-def check_poem_exists(message: str):
+def _check_poem_exists(message: str):
     hashed_data = hash_md5(message)
     query = f"SELECT COUNT(*) FROM `{TABLE}` WHERE `poems_hash` = '{hashed_data}'"
 
     logger.info(f"sending query '{query}'")
     return query
+
+
+def send_query(callback, T):
+    if not HAS_DATABASE:
+        return []
+
+    msql = Mysql(HOST, USER, PASSWORD, DATABASE)
+    return msql.handle_query(callback(T))
+
+
+def check_poem_exists(message: str):
+    resp = send_query(_check_poem_exists, message)
+    """Return False if data doesn't exist.
+    if resp == True, means database is connected.
+    if resp[0][0] == True, means the data does exist in table.
+    """
+    if resp and resp[0][0]:
+        return True
+    return False
 
 
 def send_message_to_bot():
