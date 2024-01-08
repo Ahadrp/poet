@@ -102,6 +102,8 @@ async def make_message():
     beautiful_resp = f"{first_verse}\n{second_verse}"
     beautiful_resp += "\n\n"
     beautiful_resp += f"• {poet_name}"
+    beautiful_resp += "\n"
+    beautiful_resp += f"|¦ {CHANNEL_ID} ¦|"
 
     return beautiful_resp
 
