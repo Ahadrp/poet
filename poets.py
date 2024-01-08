@@ -1,6 +1,6 @@
 class Poets():
-    HAFEZ = 237
-    SAADI = 238
-    KHAYAM = 239
-    MOLAVAI = 240
+    HAFEZ = 2
+    KHAYAM = 3
+    MOLAVI = 5
+    SAADI = 7
 

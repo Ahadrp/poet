@@ -1,6 +1,5 @@
 #!/home/ahad/me_bot/bin/python3
 
-from random import randint
 from telegram.error import TelegramError
 from datetime import datetime
 from dotenv import load_dotenv
@@ -9,6 +8,7 @@ from telegram import Bot
 import asyncio
 import requests
 import schedule
+import random
 import logging
 import time
 import os
@@ -17,9 +17,9 @@ import os
 load_dotenv()
 
 # Set your bot token and channel ID
-bot_token = os.environ["TOKEN"]
-channel_id = os.environ["CHANNEL_ID"]
-interval_seconds = 3
+BOT_TOKEN = os.environ["TOKEN"]
+CHANNEL_ID = os.environ["CHANNEL_ID"]
+VERSE_COUNT = '1'
 
 logging.basicConfig(
     level=logging.INFO,  # Set the desired logging level
@@ -27,13 +27,20 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"  # Define the date format
 )
 
+
+def select_random_poet(Poets : Poets) -> int:
+    """Return The int value of poet
+    """
+    return random.choice((Poets.HAFEZ, Poets.SAADI, Poets.MOLAVI, Poets.KHAYAM))
+
+
 def process_resp(response: dict, key: str) -> str:
     """Return processed response
     """
     return response[key]
 
 
-async def send_req(id: int) -> dict:
+async def send_req() -> dict:
     """Return the response of request
 
     send req to api and get the response
@@ -43,15 +50,16 @@ async def send_req(id: int) -> dict:
 
     response = ""
 
-    url = f"https://free-nba.p.rapidapi.com/players/{str(id)}"
+    url = f"https://c.ganjoor.net/beyt-json.php"
 
-    headers = {
-        "X-RapidAPI-Key": "eb12b991e4msh8390ec23a48d4f4p1054d1jsne0419ea7b577",
-        "X-RapidAPI-Host": "free-nba.p.rapidapi.com"
-    }
+    """
+    p is the int value of a poet.
+    n is the count of verse we are requesting to take.
+    """
+    params = {"p": str(select_random_poet(Poets)), 'n': VERSE_COUNT}
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, params=params)
         logger.info(f"Response '{response}'has been taken successfully!")
     except requests.exceptions.RequestException as e:
         logger.error(f"sending req failed because: '{e}'")
@@ -69,13 +77,18 @@ async def _send_message_to_bot():
 
     logger.debug("CALL send_message_to_bot")
 
-    bot = Bot(token=bot_token)
+    bot = Bot(token=BOT_TOKEN)
 
-    resp = await send_req(select_random_poet())
-    message = process_resp(resp, "last_name")
+    resp = await send_req()
+
+    poet_name = process_resp(resp, "poet")
+    first_verse = process_resp(resp, "m1")
+    second_verse = process_resp(resp, "m2")
+
+    message = f"{poet_name}:\n{first_verse}\\{second_verse}"
 
     try:
-        await bot.send_message(chat_id=channel_id, text=message)
+        await bot.send_message(chat_id=CHANNEL_ID, text=message)
         logger.info(f"Message '{message}' has been send successfully")
     except TelegramError as e:
         logger.error(f"Error while sending message '{message}' because: {e}")
@@ -95,13 +108,7 @@ def send_request_and_response_at_specific_time(time_str):
     logger.info(f"call 'send_message_at_specific_time'")
 
     schedule.every(3).seconds.do(send_message_to_bot)
-    # schedule.every().day.at(time_str).do(asyncio.run, send_api_response_to_bot(bot_token, chat_id, api_url))
-
-
-def select_random_poet():
-    """Return The int value of poet
-    """
-    return randint(Poets.HAFEZ, Poets.MOLAVAI)
+    # schedule.every().day.at(time_str).do(asyncio.run, send_api_response_to_bot(BOT_TOKEN, chat_id, api_url))
 
 
 if __name__ == "__main__":
