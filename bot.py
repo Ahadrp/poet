@@ -1,10 +1,13 @@
 #!/home/ahad/me_bot/bin/python3
 
 from telegram.error import TelegramError
+from msql import Mysql
 from datetime import datetime
 from dotenv import load_dotenv
 from poets import Poets
 from telegram import Bot
+import mysql.connector
+import hashlib
 import asyncio
 import requests
 import schedule
@@ -21,6 +24,11 @@ BOT_TOKEN = os.environ["TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]
 VERSE_COUNT = '1'
 poets_list = []
+HOST = "127.0.0.1"
+USER = "root"
+PASSWORD = "1234"
+DATABASE = "POETS"
+TABLE = "Poems"
 
 logging.basicConfig(
     level=logging.INFO,  # Set the desired logging level
@@ -82,22 +90,40 @@ async def send_req() -> dict:
     return response.json()
 
 
-async def _send_message_to_bot():
-    """
-    send req to api, get resp and send it to bot.
-    """
-
-    logger.debug("CALL send_message_to_bot")
-
-    bot = Bot(token=BOT_TOKEN)
-
+async def make_message():
     resp = await send_req()
 
     poet_name = process_resp(resp, "poet")
     first_verse = process_resp(resp, "m1")
     second_verse = process_resp(resp, "m2")
 
-    message = f"{poet_name}:\n{first_verse}\n{second_verse}"
+    return f"{poet_name}:\n{first_verse}\n{second_verse}"
+
+
+async def _send_message_to_bot():
+    """
+    send req to api, get resp and send it to bot.
+    """
+    message = ""
+
+    logger.debug("CALL send_message_to_bot")
+
+    bot = Bot(token=BOT_TOKEN)
+
+    try:
+        message = await make_message()
+        while send_query(check_poem_exists, message)[0][0]:
+            message = await make_message()
+    except mysql.connector.Error as e:
+        logger.error(f"couldn't hash data and store to database becaues: '{e}'")
+        return
+
+
+    try:
+        send_query(hash_and_store, message)
+    except mysql.connector.Error as e:
+        logger.error(f"couldn't hash data and store to database becaues: '{e}'")
+        return
 
     try:
         await bot.send_message(chat_id=CHANNEL_ID, text=message)
@@ -106,6 +132,40 @@ async def _send_message_to_bot():
         logger.error(f"Error while sending message '{message}' because: {e}")
 
     logger.debug(f"END send_message_to_bot")
+
+
+def hash_md5(string):
+    # Create an MD5 hash object
+    md5_hash = hashlib.md5()
+
+    # Convert the string to bytes and hash it
+    md5_hash.update(string.encode('utf-8'))
+
+    # Get the hexadecimal representation of the hash
+    hashed_string = md5_hash.hexdigest()
+
+    return hashed_string
+
+
+def send_query(callback, T):
+    msql = Mysql(HOST, USER, PASSWORD, DATABASE)
+    return msql.handle_query(callback(T))
+
+
+def hash_and_store(message: str) -> None:
+    hashed_data = hash_md5(message)
+    query = f"INSERT INTO `{TABLE}` VALUES ('{hashed_data}')"
+
+    logger.info(f"sending query '{query}'")
+    return query
+
+
+def check_poem_exists(message: str):
+    hashed_data = hash_md5(message)
+    query = f"SELECT COUNT(*) FROM `{TABLE}` WHERE `poems_hash` = '{hashed_data}'"
+
+    logger.info(f"sending query '{query}'")
+    return query
 
 
 def send_message_to_bot():
