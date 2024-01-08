@@ -20,6 +20,7 @@ load_dotenv()
 BOT_TOKEN = os.environ["TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]
 VERSE_COUNT = '1'
+poets_list = []
 
 logging.basicConfig(
     level=logging.INFO,  # Set the desired logging level
@@ -31,7 +32,18 @@ logging.basicConfig(
 def select_random_poet(Poets : Poets) -> int:
     """Return The int value of poet
     """
-    return random.choice((Poets.HAFEZ, Poets.SAADI, Poets.MOLAVI, Poets.KHAYAM))
+    global poets_list
+
+    if len(poets_list) == 4:
+        poets_list = []
+
+    the_chosen_poet = 7
+    while the_chosen_poet in poets_list:
+        the_chosen_poet = random.choice((Poets.HAFEZ, Poets.SAADI, Poets.MOLAVI, Poets.KHAYAM))
+
+    poets_list.append(the_chosen_poet)
+
+    return the_chosen_poet
 
 
 def process_resp(response: dict, key: str) -> str:
@@ -85,7 +97,7 @@ async def _send_message_to_bot():
     first_verse = process_resp(resp, "m1")
     second_verse = process_resp(resp, "m2")
 
-    message = f"{poet_name}:\n{first_verse}\\{second_verse}"
+    message = f"{poet_name}:\n{first_verse}\n{second_verse}"
 
     try:
         await bot.send_message(chat_id=CHANNEL_ID, text=message)
