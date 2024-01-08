@@ -93,12 +93,17 @@ async def send_req() -> dict:
 
 async def make_message():
     resp = await send_req()
+    beautiful_resp = ""
 
     poet_name = process_resp(resp, "poet")
     first_verse = process_resp(resp, "m1")
     second_verse = process_resp(resp, "m2")
 
-    return f"{poet_name}:\n{first_verse}\n{second_verse}"
+    beautiful_resp = f"{first_verse}\n{second_verse}"
+    beautiful_resp += "\n\n"
+    beautiful_resp += f"• {poet_name}"
+
+    return beautiful_resp
 
 
 async def _send_message_to_bot():
