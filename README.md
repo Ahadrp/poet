@@ -1,6 +1,8 @@
 # Telegram Poem Bot
 
-This project, is a Telegram bot written in Python designed to send poems to a Telegram channel at specified intervals. 
+## Introduction
+
+Ever thought about effortlessly adding poetry to your Telegram channel? Look no further! Introducing the Telegram Poem Bot. This bot seamlessly integrates with your channel, bringing literary charm to your subscribers' feeds. With customizable intervals and a curated selection of poets, your channel can offer a delightful surprise to its members. Let the Telegram Poem Bot elevate your channel with a sprinkle of poetic inspiration. 
 
 ## Features
 
