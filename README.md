@@ -19,7 +19,7 @@ This project, is a Telegram bot written in Python designed to send poems to a Te
 4. Create a `.env` file and set the following variables:
    - `DATABASE_ENABLED`: Set to `1` to enable database storage, or `0` to disable it.
    - `CHANNEL_ID`: Specify the ID of the Telegram channel where the bot will send poems.
-5. Modify the list of poets in the `.py` file as desired.
+5. Modify the list of poets in the `poets.py` file as desired.
 6. Add the bot as an admin to your Telegram channel.
 7. Run the bot using `python bot.py`.
 
